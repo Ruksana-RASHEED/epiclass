@@ -87,6 +87,42 @@ I then plotted the datapoints projected onto the first two PCA components, to gi
 
 Doesn't look linearly separable in only these two dimensions, but it does look like we might be able to use a non-linear method like a support vector machine with a radial basis function kernel or similar to separate the classes.
 
+## Evaluation metrics
+
+We need to decide what metric to use to evaluate our classification algorithms and pipelines.
+
+I am using 70% of the data for training and for hyper-parameter tuning (through cross-validation), and the remaining 30% for testing. The metrics I discuss below are all applied on the test set for evaluating the models.
+
+### Accuracy
+
+Classification accuracy is quite appropriate in this case – we are trying to classify as seizure/not seizure or by class, and we want to classify as many correctly as possible. In the multiclass case, the classes are perfectly balanced, meaning there are the same number of each class. So there is no reason to come up with a more complex metric than accuracy. For the seizure vs non-seizure case, the classes are unbalanced, with 20% in one class and 80% in the other. While not extremely unbalanced, it’s not balanced either. So we may want to consider other metrics.
+
+## Area under the Receiver Operating Characteristic curve
+
+We might want to be able to fine-tune the sensitivity vs specificity of our problem. So for the two-class problem, we might want to consider using the area under the ROC curve
+
+### F1-score
+
+In the two parameter case, the classes are unbalanced, so accuracy may not be an entirely fair metric. Instead we can use the geometric mean of precision and recall, the F1 score, defined as:
+
+2 * precision * recall /(precision + recall)
+
+### Decision
+
+In the end I decided to use the F1-score for the 2-class problem, and accuracy for the 5-class problem. I also record other metrics such as the area under the ROC curve, precision, and recall, but those are not used to choose the model or the hyperparameters.
+
 ## Seizure vs not-seizure classification using Principal Components Analysis and Support Vector Machines
 
+Let's start with the seizure (class 1) vs non-seizure (all other classes) classification.
+
+As I mentioned above, after doing PCA, the classes look like they may be separable but not linearly. So the first thing I decided to try was to use a support vector machine (SVM) with a radial-basis-function (RBF) kernel.
+
+I created a pipeine with the PCA and the SVC (support vector classification) using an RBF kernel. The most important hyperparameters are the number of PCA components to use, the penalty parameter C on the SVM error term, and gamma, which is a scale parameter on the RBF function used in the SVM. I used the [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html#sklearn.model_selection.GridSearchCV) method with five-fold cross-validation on the training set, optimizing for F1-score, to choose these hyperparameters.
+
+Using 50 PCA components, C = 1000, and gamma = 0.001, the model has a mean crossvalidation accuracy on the test set of 93.75%  and a mean test F1 of 93.83%. In this case, both the accuracy and the F1 metric agree on which set of hyperparameters are optimal.
+
+Running that model on the test set (not used in tuning the hyperparameters) results in the following confusion matrix:
+
 ## Multiclass Classification
+
+Since we got pretty good results using a PCA and SVM pipeline on the binary classification problem, I also tried the same pipeline for the multiclass classification problem.
