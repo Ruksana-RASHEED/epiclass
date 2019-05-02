@@ -5,7 +5,7 @@ This shows some exploratory data analysis, followed by training and deploying a 
 
 The data set is available from https://archive.ics.uci.edu/ml/datasets/Epileptic+Seizure+Recognition
 
-There are 11500 data points (rows in the data set) and 178 features. There are five classes for the data. Quoting from the above link:
+There are 11500 data points (rows in the data set) and 178 features (columns). There are five classes for the data. Quoting from the above link:
 
 > y contains the category of the 178-dimensional input vector. Specifically y in {1, 2, 3, 4, 5}: 
 > 
@@ -18,6 +18,8 @@ There are 11500 data points (rows in the data set) and 178 features. There are f
 > * 2 - They recorder the EEG from the area where the tumor was located 
 > 
 > * 1 - Recording of seizure activity 
+
+The goal here is to build two models, one to predict seizure vs. non-seizure, and one to predict which one of the five classes a given datapoint belongs to. So this is a classic classification problem.
 
 ## Exploratory data analysis
 
@@ -44,7 +46,7 @@ Let's see if there's any structure to the data. Here's a heatmap of the correlat
 
 ![Correlation heatmap](/outputs/corr_heatmap.png "Correlation heatmap")
 
-This is really interesting! Note the diagonal band of high correlation in the centre, flanked by parallel lines of negative correlation, alternating with positive correlation, etc, getting less defined as it moves away from the main diagonal. Clearly the order of the features matters. I am not a neuroscientist, but I theorize that features close to each other in the data set are physically close to each other in the brain, and that this pattern of alternating high and low correlation is characteristic of brain activity. Taking a cut through the correlation matrix at the feature in the centre, X90, you can see the correlation pattern in more detail:
+Note the diagonal band of high correlation in the centre, flanked by parallel lines of negative correlation, alternating with positive correlation, etc, getting less defined as it moves away from the main diagonal. Clearly the order of the features matters. I am not a neuroscientist, but I theorize that features close to each other in the data set are physically close to each other in the brain, and that this pattern of alternating high and low correlation is characteristic of brain activity. Taking a cut through the correlation matrix at the feature in the centre, X90, you can see the correlation pattern in more detail:
 
 ![Correlations with X90](/outputs/corr_X90.png "Correlations with X90")
 
@@ -61,3 +63,30 @@ Here's another visualization of the same phenomenon:
 ![Minimum vs maximum of features by class](/outputs/min_vs_max.png "Minimum vs maximum of features by class")
 
 Clearly seizure activity, and to a lesser extend brain tumor areas, have significantly wider ranges of feature values than normal activity, which tend to stay around the -250 to 250 range.
+
+## Principal Components Analysis
+
+As mentioned when discussing the correlation heatmap, the data seems to have some clear structure. And at 178 features, it could definitely benefit from some dimensionality reduction. So that's why I started with Principal Components Analysis (PCA). I used scikit-learn's PCA class to generate the first 60 PCA components. (60 was an arbitrary choice). First let's take a look at the explained variance ratio. Here I am looking to see how fast the explained variance decays with eigenvalue number and looking for any eigengaps. Here's a semilogy plot of the explained variance across the first 60 PCA components.
+
+![Plot of explained variance ratio of PCA components.](/outputs/var_ratio.png "Explained variance ratio of PCA components")
+
+That's a pretty steady decrease with no clear eigengap, though the decrease in explained variance does get steeper at around 35 PCA components. The other plot I like to see is a semilogy plot of one minus the cumulative sum of the explained variance ratio, which gives you a good idea of how many components you need to include to get various percentages of explained variance.
+
+![Plot of one minus cumulative explained variance ratio of PCA components.](/outputs/var_ratio_sum.png "One minus cumulative explained variance ratio of PCA components")
+
+This shows that you need 32 components to capture more than 90% of the explained variance and 52 components to capture more than 99% of the explained variance. This is not as few components as I would have liked to see, considering the high degree of structure in the data, but it's better than working with the original 178 features.
+
+Here's a plot of the first five PCA components vs the original features:
+
+![Plot of first five PA components](/outputs/pca_components.png "First five PA components")
+
+You can see the how the data structure that we saw above in the heatmap and the correlations with X90 have affected the PCA components - the components show that same alternating pattern with the same wavelength.
+
+I then plotted the datapoints projected onto the first two PCA components, to give an idea of how well the PCA has done in generating a space in which we can separate the classes:
+![Datapoints projected onto the first two PCA components](/outputs/two_pca_components.png "Datapoints projected onto the first two PCA components")
+
+Doesn't look linearly separable in only these two dimensions, but it does look like we might be able to use a non-linear method like a support vector machine with a radial basis function kernel or similar to separate the classes.
+
+## Seizure vs not-seizure classification using Principal Components Analysis and Support Vector Machines
+
+## Multiclass Classification
