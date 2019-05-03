@@ -66,7 +66,7 @@ Clearly seizure activity, and to a lesser extend brain tumor areas, have signifi
 
 ## Principal Components Analysis
 
-As mentioned when discussing the correlation heatmap, the data seems to have some clear structure. And at 178 features, it could definitely benefit from some dimensionality reduction. So that's why I started with Principal Components Analysis (PCA). I used scikit-learn's PCA class to generate the first 60 PCA components. (60 was an arbitrary choice). First let's take a look at the explained variance ratio. Here I am looking to see how fast the explained variance decays with eigenvalue number and looking for any eigengaps. Here's a semilogy plot of the explained variance across the first 60 PCA components.
+As mentioned when discussing the correlation heatmap, the data seems to have some clear structure. And at 178 features, it could definitely benefit from some dimensionality reduction. So that's why I started with Principal Components Analysis (PCA). First I scaled the data to be between -1 and 1 by dividing it by 2047 - I didn't see any reason to use more sophisticated scaling methods when the parameters were all so similarly scaled. Then I used scikit-learn's PCA class to generate the first 60 PCA components. (60 was an arbitrary choice). First let's take a look at the explained variance ratio. Here I am looking to see how fast the explained variance decays with eigenvalue number and looking for any eigengaps. Here's a semilogy plot of the explained variance across the first 60 PCA components.
 
 ![Plot of explained variance ratio of PCA components.](/outputs/var_ratio.png "Explained variance ratio of PCA components")
 
@@ -97,7 +97,7 @@ I am using 70% of the data for training and for hyper-parameter tuning (through 
 
 Classification accuracy is quite appropriate in this case – we are trying to classify as seizure/not seizure or by class, and we want to classify as many correctly as possible. In the multiclass case, the classes are perfectly balanced, meaning there are the same number of each class. So there is no reason to come up with a more complex metric than accuracy. For the seizure vs non-seizure case, the classes are unbalanced, with 20% in one class and 80% in the other. While not extremely unbalanced, it’s not balanced either. So we may want to consider other metrics.
 
-## Area under the Receiver Operating Characteristic curve
+### Area under the Receiver Operating Characteristic curve
 
 We might want to be able to fine-tune the sensitivity vs specificity of our problem. So for the two-class problem, we might want to consider using the area under the ROC curve
 
@@ -119,10 +119,29 @@ As I mentioned above, after doing PCA, the classes look like they may be separab
 
 I created a pipeine with the PCA and the SVC (support vector classification) using an RBF kernel. The most important hyperparameters are the number of PCA components to use, the penalty parameter C on the SVM error term, and gamma, which is a scale parameter on the RBF function used in the SVM. I used the [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html#sklearn.model_selection.GridSearchCV) method with five-fold cross-validation on the training set, optimizing for F1-score, to choose these hyperparameters.
 
-Using 50 PCA components, C = 1000, and gamma = 0.001, the model has a mean crossvalidation accuracy on the test set of 93.75%  and a mean test F1 of 93.83%. In this case, both the accuracy and the F1 metric agree on which set of hyperparameters are optimal.
+Using 50 PCA components, C=1000, and gamma=0.001 resulted in a cross-validation f1 of 0.961, and an accuracy of 99.5%.
 
 Running that model on the test set (not used in tuning the hyperparameters) results in the following confusion matrix:
 
+| |      Predicted |     |      |
+|-----------|------|-----|------|
+| **Actual**    | **0**    | **1**   | **All**  |
+| **0**        | 2726 | 33  | 2759 |
+| **1**         | 50   | 641 | 691  |
+| **All**       | 2776 | 674 | 3450 |
+
+This comes out to a precision of 98.8%, recall of 98.2%, f1-score of 0.985, and accuracy of 97.6%. This seems like a reasonably good classifier for this problem.
+
 ## Multiclass Classification
 
-Since we got pretty good results using a PCA and SVM pipeline on the binary classification problem, I also tried the same pipeline for the multiclass classification problem.
+Since we got pretty good results using a PCA and SVM pipeline on the binary classification problem, I also tried the same pipeline for the multiclass classification problem. Again I ran a grid search with 5-fold cross-validation to tune the hyperparameters. Since these classes were balanced, as mentioned above, I used accuracy for the metric when tuning. The optimal hyperparameters came out to be 50 PCA components (the maximum number in the grid search), C=100 and gamma=0.1
+
+Unfortunately, in this case, I wasn't able to get the accuracy as high as I was able to do in the binary classification problem. The average cross-validation accuracy was 69.8%. On the held-out test set, the accuracy was a similar 71.2%.
+
+Let's look in more detail about why the classifier was not able to get better accuracy than that. Here's the confusion matrix, as a heatmap to show where the classification is failing:
+
+![Confusion matrix for multiclass with PCA and SVM](/outputs/confusion_5c_scaled.png "Confusion matrix for multiclass with PCA and SVMs")
+
+As you can see, the algorithm does pretty well at distinguishing class 1 (seizures) from the rest, like in the binary classification. It has errors of almost every combination, except that it doesn't ever identify a seizure data point as a healthy, eyes-open point. It has trouble telling classes 4 and 5 - eyes open and closed - and especially classes 2 and 3 - measurements in the tumor area and in the healthy part of the brain where there's a tumor elsewhere - apart.
+
+I tried several other classification methods for the multiclass problem, including a random forest and several different configurations of neural networks (not in the code here on github, as I wasn't able to achieve better performance so I didn't clean up and push the code). In all of them I was able to get around 65% to 68% accuracy - I couldn't get above 70% on any of them. So it may well be that the signatures for classes 2 and 3 are too similar, and for 4 and 5 as well, to achieve any better than that.
