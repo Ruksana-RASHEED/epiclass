@@ -2,14 +2,16 @@ import os
 import itertools
 
 import matplotlib
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 from sklearn.svm import SVC
-from sklearn.metrics import precision_recall_fscore_support
 from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier
 
 LEGEND_COORDS = (1.2, 0.8)
 TOTAL_PCA_COMPONENTS = 60
@@ -25,21 +27,130 @@ def main():
     """
     epidata = pd.read_csv(os.path.join('data', 'data.csv'))
     set_matplotlib_params()
-    # explore_data(epidata)
-    features = epidata.drop(['y', 'Unnamed: 0'], axis=1)
+    explore_data(epidata)
+    features = epidata.drop(['y', 'Unnamed: 0'], axis=1) / 2047.0
     target = epidata['y']
     x_train, x_test, y_train, y_test = train_test_split(features, target,
                                                         test_size=0.3,
                                                         random_state=0)
     explore_pca(x_train, y_train)
+    naive_vis(x_train, y_train)
+    test_pca_svm(x_train, (y_train == 1).astype(int), x_test,
+                 (y_test == 1).astype(int), '2c_scaled_fine')
+    test_pca_svm(x_train, y_train, x_test, y_test, '5c_scaled')
+    visualize_cv_results('5c_scaled')
+    # test_random_forest(x_train, y_train, x_test, y_test, '5c_rf')
+    # visualize_cv_results('5c_rf')
+    visualize_confusion(os.path.join('outputs', 'confusion_5c_scaled'))
+
+
+def visualize_confusion(filename):
+    """Make a heatmap of a confusion matrix
+
+    Args:
+        filename: string
+            Path to a csv file (without extension). Also used for the png
+            file in which to write out the image.
+
+    Returns:
+        None
+    """
+    conf = pd.read_csv(filename + '.csv', index_col=0)
+    conf = conf.drop('All', axis=0)
+    conf = conf.drop('All', axis=1)
+    plot_axes = sns.heatmap(conf, annot=True, fmt="d")
+    plot_axes.set_xlabel('Predicted')
+    plot_axes.set_ylabel('Actual')
+    fig = plot_axes.get_figure()
+    fig.savefig(filename + '.png', bbox_inches='tight')
+    fig.clf()
+
+
+def test_random_forest(x_train, y_train, x_test, y_test, filename_root):
+    """Train and test a random forest classifier
+
+    Args:
+        x_train: pandas DataFrame
+            Features for training
+        y_train: pandas Series
+            Targets for training
+        x_test: pandas DataFrame
+            Features for testing
+        y_test:
+            Targets for testing
+        filename_root: str
+            Identifier for this set of parameters and targets, to be used for
+            writing out the cross-validation results and confusion matrix
+
+    Returns:
+        None
+    """
+    parameters = {
+        'n_estimators': [320, 330, 340],
+        'max_depth': [8, 9, 10, 11, 12],
+        'random_state': [0],
+    }
+    clf = GridSearchCV(RandomForestClassifier(), parameters, cv=10)
+    clf.fit(x_train, y_train)
+    y_pred = clf.predict(x_test)
+    cv_res = pd.DataFrame(clf.cv_results_)
+    cv_res.to_csv(os.path.join('outputs',
+                               'cv_results_' + filename_root + '.csv'))
+    confusion = pd.crosstab(y_test, y_pred, rownames=['Actual'],
+                            colnames=['Predicted'], margins=True)
+    confusion.to_csv(os.path.join('outputs',
+                                  'confusion_' + filename_root + '.csv'))
+
+
+def naive_vis(x_train, y_train):
+    """Create some plots of some simple summary statistics of the data
+
+    Args:
+        x_train: pandas DataFrame
+            Features for training
+        y_train: pandas Series
+            Targets for training
+
+    Returns:
+        None
+    """
     naive = get_naive_features(x_train)
     make_feature_scatter_plots(naive, y_train)
     make_violin_plots(naive, y_train)
-    test_pca_svm(x_train, (y_train == 1).astype(int), x_test,
-                 (y_test == 1).astype(int))
 
 
-def test_pca_svm(x_train, y_train, x_test, y_test):
+def visualize_cv_results(filename_root):
+    csv_file = os.path.join('outputs', 'cv_results_' + filename_root + '.csv')
+    cv_res = pd.read_csv(csv_file, index_col=0)
+    # print(cv_res.columns)
+    target_col = 'mean_test_score'
+    param_cols = [col for col in cv_res.columns if col.startswith('param_')]
+    best_row = cv_res[target_col].idxmax()
+    best_params = cv_res[param_cols].iloc[best_row]
+    for i, j, k in [(0, 1, 2), (1, 0, 2), (2, 0, 1)]:
+        xvar = param_cols[j]
+        yvar = param_cols[k]
+        fixed_var = param_cols[i]
+        filtered = cv_res.loc[cv_res[fixed_var] == best_params[fixed_var],
+                              param_cols + [target_col]]
+        pivot = filtered.pivot(xvar, yvar, target_col)
+        print(pivot)
+        xvals = pivot.columns.values
+        yvals = pivot.index.values
+        zvals = pivot.values
+        xgrid, ygrid = np.meshgrid(xvals, yvals)
+        plt.contourf(ygrid, xgrid, zvals)
+        plt.colorbar()
+        plt.gca().set_xlabel(xvar)
+        plt.gca().set_ylabel(yvar)
+        fig = plt.gcf()
+        filename = os.path.join('outputs', 'cont_' + filename_root + '_' +
+                                xvar + '_' + yvar + '.png')
+        fig.savefig(filename, bbox_inches='tight')
+        fig.clf()
+
+
+def test_pca_svm(x_train, y_train, x_test, y_test, filename_root):
     """Train and test a PCA and SVM classifier
 
     Train a pipeline with principal components analysis dimensionality
@@ -57,50 +168,41 @@ def test_pca_svm(x_train, y_train, x_test, y_test):
             Features for testing
         y_test:
             Targets for testing
+        filename_root: str
+            Identifier for this set of parameters and targets, to be used for
+            writing out the cross-validation results and confusion matrix
 
     Returns:
         None
     """
-    pca = PCA(n_components=25, svd_solver='randomized',
-              whiten=True).fit(x_train)
-    x_train_pca = pca.transform(x_train)
-    x_test_pca = pca.transform(x_test)
-    param_grid = {'C': [1e3, 5e3, 1e4, 5e4, 1e5],
-                  'gamma': [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.1], }
-    clf = GridSearchCV(SVC(kernel='rbf', class_weight='balanced'),
-                       param_grid, cv=5)
-    clf = clf.fit(x_train_pca, y_train)
-    y_pred = clf.predict(x_test_pca)
-    write_class_report_file(y_test, y_pred,
-                            os.path.join('outputs', 'best_svm.csv'))
-
-
-def write_class_report_file(true, pred, filename):
-    """Write a classification report to a csv file
-
-    Args:
-        true: sequence
-            True classification labels
-        pred: sequence of same size as true
-            Predicted classification labels
-        filename: str
-            Path to which to save comma-separated value file with
-            classification report
-
-    Returns:
-        None
-    """
-    clf_rep = precision_recall_fscore_support(true, pred)
-    out_dict = {"precision": clf_rep[0].round(2),
-                "recall": clf_rep[1].round(2),
-                "f1-score": clf_rep[2].round(2),
-                "support": clf_rep[3]}
-    out_df = pd.DataFrame(out_dict)
-    avg_tot = (out_df.apply(lambda x: round(x.mean(), 2) if x.name != "support"
-               else round(x.sum(), 2)).to_frame().T)
-    avg_tot.index = ["avg/total"]
-    out_df = out_df.append(avg_tot)
-    out_df.to_csv(filename)
+    pca = PCA(svd_solver='randomized', whiten=True)
+    svm = SVC(kernel='rbf', class_weight='balanced')
+    pipeline = Pipeline(steps=[('pca', pca), ('svm', svm)])
+    # param_grid = {'svm__C': [1e3, 5e3, 1e4, 5e4, 1e5],
+    #               'svm__gamma': [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.1],
+    #               'pca__n_components' : [2, 5, 10, 20, 30, 40, 50]}
+    param_grid = {'svm__C': [10, 50, 100, 500],
+                  'svm__gamma': [1e-4, 5e-3, 1e-3, 5e-2],
+                  'pca__n_components': [50, 60]}
+    # param_grid = {'svm__C': [1e2, 5e2, 1e3, 5e3],
+    #               'svm__gamma': [.05, 0.1, 0.15, 0.2],
+    #               'pca__n_components': [50, 60]}
+    # scoring = {'AUC': 'roc_auc', 'accuracy': 'accuracy',
+    #            'f1': 'f1', 'precision': 'precision', 'recall': 'recall'}
+    scoring = {'accuracy': 'accuracy',
+               'f1': 'f1_macro', 'precision': 'precision_macro', 'recall':
+                   'recall_macro'}
+    clf = GridSearchCV(pipeline, param_grid, cv=5, scoring=scoring,
+                       refit='f1')
+    clf = clf.fit(x_train, y_train)
+    y_pred = clf.predict(x_test)
+    cv_res = pd.DataFrame(clf.cv_results_)
+    cv_res.to_csv(os.path.join('outputs',
+                               'cv_results_' + filename_root + '.csv'))
+    confusion = pd.crosstab(y_test, y_pred, rownames=['Actual'],
+                            colnames=['Predicted'], margins=True)
+    confusion.to_csv(os.path.join('outputs',
+                                  'confusion_' + filename_root + '.csv'))
 
 
 def make_violin_plots(features, targets):
