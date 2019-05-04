@@ -1,3 +1,28 @@
+"""Visualize seizure data set and create prediction models
+
+Demonstration of classification on the Epileptic Seizure Recognition Data Set
+
+This shows some exploratory data analysis, followed by training and deploying a
+classifier for the Epileptic Seizure Recognition Data Set.
+
+The data set is available from
+https://archive.ics.uci.edu/ml/datasets/Epileptic+Seizure+Recognition
+
+There are 11500 data points (rows in the data set) and 178 features (columns).
+There are five classes for the data. Quoting from the above link:
+
+y contains the category of the 178-dimensional input vector.
+Specifically y in {1, 2, 3, 4, 5}:
+
+    5 - eyes open, means when they were recording the EEG signal of the brain
+        the patient had their eyes open
+    4 - eyes closed, means when they were recording the EEG signal the patient
+        had their eyes closed
+    3 - Yes they identify where the region of the tumor was in the brain and
+        recording the EEG activity from the healthy brain area
+    2 - They recorder the EEG from the area where the tumor was located
+    1 - Recording of seizure activity
+"""
 import os
 import itertools
 
@@ -12,6 +37,7 @@ from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
+import joblib
 
 LEGEND_COORDS = (1.2, 0.8)
 TOTAL_PCA_COMPONENTS = 60
@@ -20,7 +46,25 @@ CLASS_MAP = {5: 'eyes open', 4: 'eyes closed', 3: 'healthy brain area',
 
 
 def main():
-    """Explore epileptic seizure classification data set
+    """Explore seizure data set and create prediction model
+
+    Load the data. Generate several plots to help understand the data. Train,
+    optimize the hyperparameters for, and save the following models:
+        - A pipeline with principal component analysis followed by an
+            rbf-kernel support vector classifier for the binary problem of
+            predicting seizure vs non-seizure.
+        - A pipeline with principal component analysis followed by an
+            rbf-kernel support vector classifier for the multiclass problem of
+            predicting which of the 5 categories the measurement falls into
+        - A random forest for the multiclass problem of
+            predicting which of the 5 categories the measurement falls into
+    For each, save the cross-validation scores and the confusion matrices to
+    files.
+
+    Note that because this function performs cross-validation on multiple
+    machine learning models, it takes a very long time (an hour, perhaps) to
+    run. Normally select only the parts that are needed to run, and comment
+    out the rest in this function.
 
     Returns:
         None
@@ -33,15 +77,45 @@ def main():
     x_train, x_test, y_train, y_test = train_test_split(features, target,
                                                         test_size=0.3,
                                                         random_state=0)
+    save_data_to_file(x_train, y_train, os.path.join('outputs',
+                                                     'train_data.csv'))
+    save_data_to_file(x_test, y_test, os.path.join('outputs', 'test_data.csv'))
     explore_pca(x_train, y_train)
     naive_vis(x_train, y_train)
+    # two class PCA SVM pipeline
     test_pca_svm(x_train, (y_train == 1).astype(int), x_test,
                  (y_test == 1).astype(int), '2c_scaled_fine')
+    train_and_save_pca_svm(50, 50, 0.005, x_train, (y_train == 1).astype(int),
+                           x_test, (y_test == 1).astype(int),
+                           'two_class_pca_svm')
+    # five class PCA SVM pipeline
     test_pca_svm(x_train, y_train, x_test, y_test, '5c_scaled')
-    visualize_cv_results('5c_scaled')
-    # test_random_forest(x_train, y_train, x_test, y_test, '5c_rf')
-    # visualize_cv_results('5c_rf')
-    visualize_confusion(os.path.join('outputs', 'confusion_5c_scaled'))
+    train_and_save_pca_svm(50, 100, 0.1, x_train, y_train, x_test, y_test,
+                           'five_class_pca_svm')
+    visualize_confusion(os.path.join('outputs', 'five_class_pca_svm'))
+    # five class random forest
+    test_random_forest(x_train, y_train, x_test, y_test, '5c_rf_scaled')
+    visualize_confusion(os.path.join('outputs', 'confusion_5c_rf_scaled'))
+
+
+def save_data_to_file(features, targets, filename):
+    """Save features and targets to a csv file
+
+    Args:
+        features: numpy ndarray
+            Features to be used for prediction
+        targets: numpy ndarray, one-dimensional
+            Targets of prediction. Should have one dimension the same as the
+            number of rows in features and the other dimension should be 1
+        filename: str
+            Path to the comma-separated-value file to save
+
+    Returns:
+        None
+    """
+    to_write = pd.DataFrame(data=features)
+    to_write['y'] = targets
+    to_write.to_csv(filename)
 
 
 def visualize_confusion(filename):
@@ -49,7 +123,9 @@ def visualize_confusion(filename):
 
     Args:
         filename: string
-            Path to a csv file (without extension). Also used for the png
+            Path to a csv file (without extension). Comma-separated-value
+            file containing a confusion matrix. Also used for
+            the png
             file in which to write out the image.
 
     Returns:
@@ -119,37 +195,6 @@ def naive_vis(x_train, y_train):
     make_violin_plots(naive, y_train)
 
 
-def visualize_cv_results(filename_root):
-    csv_file = os.path.join('outputs', 'cv_results_' + filename_root + '.csv')
-    cv_res = pd.read_csv(csv_file, index_col=0)
-    # print(cv_res.columns)
-    target_col = 'mean_test_score'
-    param_cols = [col for col in cv_res.columns if col.startswith('param_')]
-    best_row = cv_res[target_col].idxmax()
-    best_params = cv_res[param_cols].iloc[best_row]
-    for i, j, k in [(0, 1, 2), (1, 0, 2), (2, 0, 1)]:
-        xvar = param_cols[j]
-        yvar = param_cols[k]
-        fixed_var = param_cols[i]
-        filtered = cv_res.loc[cv_res[fixed_var] == best_params[fixed_var],
-                              param_cols + [target_col]]
-        pivot = filtered.pivot(xvar, yvar, target_col)
-        print(pivot)
-        xvals = pivot.columns.values
-        yvals = pivot.index.values
-        zvals = pivot.values
-        xgrid, ygrid = np.meshgrid(xvals, yvals)
-        plt.contourf(ygrid, xgrid, zvals)
-        plt.colorbar()
-        plt.gca().set_xlabel(xvar)
-        plt.gca().set_ylabel(yvar)
-        fig = plt.gcf()
-        filename = os.path.join('outputs', 'cont_' + filename_root + '_' +
-                                xvar + '_' + yvar + '.png')
-        fig.savefig(filename, bbox_inches='tight')
-        fig.clf()
-
-
 def test_pca_svm(x_train, y_train, x_test, y_test, filename_root):
     """Train and test a PCA and SVM classifier
 
@@ -203,6 +248,53 @@ def test_pca_svm(x_train, y_train, x_test, y_test, filename_root):
                             colnames=['Predicted'], margins=True)
     confusion.to_csv(os.path.join('outputs',
                                   'confusion_' + filename_root + '.csv'))
+
+
+def train_and_save_pca_svm(n_components, C, gamma, x_train, y_train,
+                           x_test, y_test, filename_root):
+    """Train a pipeline with PCA and RBF SVM and save it to a file for later use
+
+    Build a pipeline with two components: A principal components analysis
+    followed by a support-vector machine classifier. Fit the pipeline to
+    x_test and y_test. Save the model as a file to be loaded later for
+    prediction. Test the prediction using x_test and y_test and save the
+    resulting confusion matrix to a file.
+
+    Args:
+        n_components: int
+            Number of principal components to use in the PCA portion of the
+            pipeline
+        C: float
+            Penalty parameter C of the error term of the SVM classifier
+        gamma : float, optional (default=’auto’)
+            Kernel coefficient for the radial basis function kernel of the
+            SVM classifier
+        x_train: pandas DataFrame or numpy ndarray
+            Features to use to train the pipeline
+        y_train: pandas Series or numpy ndarray
+            Targets to use to train the pipeline
+        x_test: pandas DataFrame or numpy ndarray
+            Features to use to test the pipeline
+        y_test: pandas Series or numpy ndarray
+            Targets to use to test the pipeline
+        filename_root: str
+            Identifier for this model, used in creating file names for the
+            model file and the confusion matrix file
+
+    Returns:
+
+    """
+    pca = PCA(n_components=n_components, whiten=True)
+    svm = SVC(kernel='rbf', C=C, gamma=gamma, class_weight='balanced')
+    pipeline = Pipeline(steps=[('pca', pca), ('svm', svm)])
+    pipeline.fit(x_train, y_train)
+    y_pred = pipeline.predict(x_test)
+    confusion = pd.crosstab(y_test, y_pred, rownames=['Actual'],
+                            colnames=['Predicted'], margins=True)
+    confusion.to_csv(os.path.join('outputs',
+                                  'confusion_' + filename_root + '.csv'))
+    model_filename = os.path.join('models', filename_root + '.z')
+    joblib.dump(pipeline, model_filename)
 
 
 def make_violin_plots(features, targets):
