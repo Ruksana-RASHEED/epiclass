@@ -8,5 +8,7 @@ setup(
     license='MIT',
     author='moink',
     author_email='',
-    description=''
+    description='',
+    install_requires=['keras', 'pandas', 'joblib', 'matplotlib', 'seaborn',
+                      'scikit-learn', 'flask', 'flask_restful']
 )

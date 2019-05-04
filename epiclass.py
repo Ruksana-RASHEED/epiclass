@@ -23,21 +23,22 @@ Specifically y in {1, 2, 3, 4, 5}:
     2 - They recorder the EEG from the area where the tumor was located
     1 - Recording of seizure activity
 """
-import os
 import itertools
+import os
 
-import matplotlib
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.model_selection import train_test_split
-from sklearn.decomposition import PCA
-from sklearn.svm import SVC
-from sklearn.model_selection import GridSearchCV
-from sklearn.pipeline import Pipeline
-from sklearn.ensemble import RandomForestClassifier
 import joblib
+import matplotlib
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+from keras.layers import Dense
+from keras.models import Sequential
+from keras.utils import to_categorical, plot_model
+from sklearn.decomposition import PCA
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.pipeline import Pipeline
+from sklearn.svm import SVC
 
 LEGEND_COORDS = (1.2, 0.8)
 TOTAL_PCA_COMPONENTS = 60
@@ -62,9 +63,9 @@ def main():
     files.
 
     Note that because this function performs cross-validation on multiple
-    machine learning models, it takes a very long time (an hour, perhaps) to
-    run. Normally select only the parts that are needed to run, and comment
-    out the rest in this function.
+    machine learning models, it takes a very long time (a few hours, perhaps,
+    depending on your hardware) to run. Normally select only the parts that
+    are needed to run, and comment out the rest in this function.
 
     Returns:
         None
@@ -77,9 +78,6 @@ def main():
     x_train, x_test, y_train, y_test = train_test_split(features, target,
                                                         test_size=0.3,
                                                         random_state=0)
-    save_data_to_file(x_train, y_train, os.path.join('outputs',
-                                                     'train_data.csv'))
-    save_data_to_file(x_test, y_test, os.path.join('outputs', 'test_data.csv'))
     explore_pca(x_train, y_train)
     naive_vis(x_train, y_train)
     # two class PCA SVM pipeline
@@ -96,6 +94,8 @@ def main():
     # five class random forest
     test_random_forest(x_train, y_train, x_test, y_test, '5c_rf_scaled')
     visualize_confusion(os.path.join('outputs', 'confusion_5c_rf_scaled'))
+    create_and_test_neural_net(x_train, x_test, y_train, y_test)
+    visualize_confusion(os.path.join('outputs', 'confusion_nn'))
 
 
 def save_data_to_file(features, targets, filename):
@@ -694,6 +694,79 @@ def set_matplotlib_params():
     matplotlib.rcParams['xtick.color'] = 'gray'
     matplotlib.rcParams['ytick.color'] = 'gray'
     matplotlib.rcParams['axes.labelcolor'] = 'gray'
+
+
+def create_and_test_neural_net(x_train, x_test, y_train, y_test):
+    """Create a neural network for the epileptic seizure classification data set
+
+    Train a neural network for multiclass classification. Print out the
+    accuracy. Save the model to disk for later use in prediction. Save a
+    visualization of the model.
+
+    Returns:
+        None
+    """
+    model = train_nn(x_train, y_train)
+    test_nn(model, x_test, y_test)
+    model.save('neural_net_5c.h5')
+    plot_model(model, show_shapes=True,
+               to_file=os.path.join('outputs', 'nn_model.png'))
+
+
+def test_nn(model, x_test, y_test):
+    """Test the neural network on the test set and print the accuracy
+
+        Args:
+            model: keras neural network model
+                Neural network to use for prediction
+            x_test: pandas DataFrame
+                Test features
+            y_test: binary class matrix
+                Test classes. To get the right format, call
+                keras.util.to_categorical on e.g. a pandas Series of integers.
+
+        Returns:
+            None
+    """
+    y_test2 = to_categorical(y_test - 1, num_classes=5)
+    loss_and_metrics = model.evaluate(x_test, y_test2)
+    print(model.metrics_names)
+    print(loss_and_metrics)
+    y_pred = model.predict(x_test)
+    y_pred2 = y_pred.argmax(axis=1)
+    confusion = pd.crosstab(y_test, y_pred2, rownames=['Actual'],
+                            colnames=['Predicted'], margins=True)
+    confusion.to_csv(os.path.join('outputs', 'confusion_nn' + '.csv'))
+
+
+def train_nn(x_train, y_train):
+    """Train a neural network
+
+        Args:
+            x_train: pandas DataFrame
+                Training features
+            y_train: binary class matrix
+                Training classes. To get the right format, call
+                keras.util.to_categorical on e.g. a pandas Series of integers.
+
+        Returns:
+            None
+    """
+    y_train2 = to_categorical(y_train.values - 1, num_classes=5)
+    model = Sequential()
+    model.add(Dense(units=178, input_shape=(178,), activation='relu'))
+    model.add(Dense(units=80, activation='relu'))
+    model.add(Dense(units=40, activation='relu'))
+    model.add(Dense(units=5, activation='softmax'))
+    model.compile(loss='categorical_crossentropy', optimizer='sgd',
+                  metrics=['accuracy'])
+    # history = model.fit(x_train, y_train, validation_split=0.2, epochs=200)
+    history = model.fit(x_train, y_train2, epochs=150)
+    hist_df = pd.DataFrame(history.history)
+    hist_df.to_csv(os.path.join('outputs', 'train_history.csv'))
+    filename = os.path.join('models', '5c_nn.h5')
+    model.save(filename)
+    return model
 
 
 if __name__ == '__main__':
