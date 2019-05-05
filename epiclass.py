@@ -59,6 +59,8 @@ def main():
             predicting which of the 5 categories the measurement falls into
         - A random forest for the multiclass problem of
             predicting which of the 5 categories the measurement falls into
+        - A neural network for the multiclass problem of
+            predicting which of the 5 categories the measurement falls into
     For each, save the cross-validation scores and the confusion matrices to
     files.
 
@@ -94,6 +96,7 @@ def main():
     # five class random forest
     test_random_forest(x_train, y_train, x_test, y_test, '5c_rf_scaled')
     visualize_confusion(os.path.join('outputs', 'confusion_5c_rf_scaled'))
+    # five class neural network
     create_and_test_neural_net(x_train, x_test, y_train, y_test)
     visualize_confusion(os.path.join('outputs', 'confusion_nn'))
 
@@ -162,13 +165,16 @@ def test_random_forest(x_train, y_train, x_test, y_test, filename_root):
         None
     """
     parameters = {
-        'n_estimators': [320, 330, 340],
-        'max_depth': [8, 9, 10, 11, 12],
+        'max_features': [10, 20, 30],
+        'n_estimators': [150, 200, 250],
+        'max_depth': [15, 20, 25],
         'random_state': [0],
     }
-    clf = GridSearchCV(RandomForestClassifier(), parameters, cv=10)
+    clf = GridSearchCV(RandomForestClassifier(), parameters, cv=10, verbose=10)
     clf.fit(x_train, y_train)
-    y_pred = clf.predict(x_test)
+    rf_model = clf.best_estimator_
+    joblib.dump(rf_model, os.path.join('models', filename_root + '.z'))
+    y_pred = rf_model.predict(x_test)
     cv_res = pd.DataFrame(clf.cv_results_)
     cv_res.to_csv(os.path.join('outputs',
                                'cv_results_' + filename_root + '.csv'))
@@ -223,20 +229,16 @@ def test_pca_svm(x_train, y_train, x_test, y_test, filename_root):
     pca = PCA(svd_solver='randomized', whiten=True)
     svm = SVC(kernel='rbf', class_weight='balanced')
     pipeline = Pipeline(steps=[('pca', pca), ('svm', svm)])
-    # param_grid = {'svm__C': [1e3, 5e3, 1e4, 5e4, 1e5],
-    #               'svm__gamma': [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.1],
-    #               'pca__n_components' : [2, 5, 10, 20, 30, 40, 50]}
-    param_grid = {'svm__C': [10, 50, 100, 500],
-                  'svm__gamma': [1e-4, 5e-3, 1e-3, 5e-2],
-                  'pca__n_components': [50, 60]}
-    # param_grid = {'svm__C': [1e2, 5e2, 1e3, 5e3],
-    #               'svm__gamma': [.05, 0.1, 0.15, 0.2],
-    #               'pca__n_components': [50, 60]}
-    # scoring = {'AUC': 'roc_auc', 'accuracy': 'accuracy',
-    #            'f1': 'f1', 'precision': 'precision', 'recall': 'recall'}
-    scoring = {'accuracy': 'accuracy',
-               'f1': 'f1_macro', 'precision': 'precision_macro', 'recall':
-                   'recall_macro'}
+    param_grid = {'svm__C': [1e3, 5e3, 1e4, 5e4, 1e5],
+                  'svm__gamma': [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.1],
+                  'pca__n_components': [2, 5, 10, 20, 30, 40, 50]}
+    if len(y_train.unique()) > 2:
+        scoring = {'accuracy': 'accuracy',
+                   'f1': 'f1_macro', 'precision': 'precision_macro', 'recall':
+                       'recall_macro'}
+    else:
+        scoring = {'AUC': 'roc_auc', 'accuracy': 'accuracy',
+                   'f1': 'f1', 'precision': 'precision', 'recall': 'recall'}
     clf = GridSearchCV(pipeline, param_grid, cv=5, scoring=scoring,
                        refit='f1')
     clf = clf.fit(x_train, y_train)

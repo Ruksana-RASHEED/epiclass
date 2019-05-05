@@ -10,7 +10,6 @@ import json
 
 from api import app
 
-
 MODEL_DIR = 'models'
 TEST_DIR = 'test_cases'
 
@@ -73,7 +72,7 @@ class TestTwoClassPcaSvm(unittest.TestCase):
         filename = os.path.join(directory, 'test_data.csv')
         x_test, y_test = read_features_targets(filename)
         y_pred = self.model.predict(x_test)
-        self.assertEqual(y_pred[0], (y_test==1).astype(int).iloc[0])
+        self.assertEqual(y_pred[0], (y_test == 1).astype(int).iloc[0])
 
     def test_confusion_matrix(self):
         """Test that the test data confusion matrix has not changed
@@ -132,7 +131,8 @@ class TestApi(unittest.TestCase):
         app.config['TESTING'] = True
         self.app = app.test_client()
 
-    def create_get_request(self, features):
+    @staticmethod
+    def create_get_request(features):
         """Make a get request to send to the API
 
         Args:
@@ -155,6 +155,7 @@ class TestApi(unittest.TestCase):
         response = self.app.get(get_request)
         prediction = json.loads(response.data)['prediction']
         self.assertEqual(prediction, 'Not seizure')
+
 
 if __name__ == '__main__':
     unittest.main()
