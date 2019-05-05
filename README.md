@@ -78,9 +78,7 @@ This shows that you need 32 components to capture more than 90% of the explained
 
 Here's a plot of the first five PCA components vs the original features:
 
-![Plot of first five PA components](/outputs/pca_components.png "First five PA components")
-
-You can see the how the data structure that we saw above in the heatmap and the correlations with X90 have affected the PCA components - the components show that same alternating pattern with the same wavelength.
+![Plot of first three PA components](/outputs/pca_components.png "First three PA components")
 
 I then plotted the data points projected onto the first two PCA components, to give an idea of how well the PCA has done in generating a space in which we can separate the classes:
 ![data points projected onto the first two PCA components](/outputs/two_pca_components.png "data points projected onto the first two PCA components")

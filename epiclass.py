@@ -74,7 +74,7 @@ def main():
     """
     epidata = pd.read_csv(os.path.join('data', 'data.csv'))
     set_matplotlib_params()
-    explore_data(epidata)
+    # explore_data(epidata)
     features = epidata.drop(['y', 'Unnamed: 0'], axis=1) / 2047.0
     target = epidata['y']
     x_train, x_test, y_train, y_test = train_test_split(features, target,
@@ -409,7 +409,7 @@ def explore_pca(x_train, y_train, n_components=TOTAL_PCA_COMPONENTS):
                                 os.path.join('outputs', 'var_ratio_sum.png'))
     first_two_pca_scatter(transformed[:, :2], y_train,
                           os.path.join('outputs', 'two_pca_components.png'))
-    plot_components(components[:, :5], os.path.join('outputs',
+    plot_components(components[:3, :], os.path.join('outputs',
                                                     'pca_components.png'))
 
 
@@ -428,7 +428,7 @@ def plot_components(components, filename):
         None
     """
     plot_axes = plt.subplot(1, 1, 1)
-    plot_axes.plot(components)
+    plot_axes.plot(components.transpose())
     plot_axes.set_xlabel('Feature')
     plot_axes.set_ylabel('Component values')
     fig = plot_axes.get_figure()
