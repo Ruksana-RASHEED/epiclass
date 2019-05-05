@@ -64,7 +64,7 @@ Here's another visualization of the same phenomenon:
 
 Clearly seizure activity, and to a lesser extend brain tumor areas, have significantly wider ranges of feature values than normal activity, which tend to stay around the -250 to 250 range.
 
-## Principal Components Analysis
+## Principal Component Analysis
 
 As mentioned when discussing the correlation heatmap, the data seems to have some clear structure. And at 178 features, it could definitely benefit from some dimensionality reduction. So that's why I started with Principal Components Analysis (PCA). First I scaled the data to be between -1 and 1 by dividing it by 2047 - I didn't see any reason to use more sophisticated scaling methods when the parameters were all so similarly scaled. Then I used scikit-learn's PCA class to generate the first 60 PCA components. (60 was an arbitrary choice). First let's take a look at the explained variance ratio. Here I am looking to see how fast the explained variance decays with eigenvalue number and looking for any eigengaps. Here's a semilogy plot of the explained variance across the first 60 PCA components.
 
@@ -76,7 +76,7 @@ That's a pretty steady decrease with no clear eigengap, though the decrease in e
 
 This shows that you need 32 components to capture more than 90% of the explained variance and 52 components to capture more than 99% of the explained variance. This is not as few components as I would have liked to see, considering the high degree of structure in the data, but it's better than working with the original 178 features.
 
-Here's a plot of the first five PCA components vs the original features:
+Here's a plot of the first three PCA components vs the original features:
 
 ![Plot of first three PA components](/outputs/pca_components.png "First three PA components")
 
@@ -90,6 +90,8 @@ Doesn't look linearly separable in only these two dimensions, but it does look l
 We need to decide what metric to use to evaluate our classification algorithms and pipelines.
 
 I am using 70% of the data for training and for hyper-parameter tuning (through cross-validation), and the remaining 30% for testing. The metrics I discuss below are all applied on the test set for evaluating the models.
+
+It's not entirely clear to me what these predictions would be used for, and different applications might require different metrics. For example, if it were being used to more closely monitor patients at risk of epileptic seizure, we would want to more heavily penalize false negatives (classifying a seizure as a non-seizure) than false positives. However, if the classification were used to, for example, automatically apply a treatment that might have side effects, we might want to penalize false positives more than false negatives. For now, without information on how the classifier is to be used, I assume that false negatives and false positives are equally undesirable.
 
 ### Accuracy
 
@@ -176,7 +178,7 @@ The models I created are saved in the *models* directory for future use. The SVM
 
 The binary classifier [two_class_pca_svm.z](/models/two_class_pca_svm.z) returns 0 if it's predicted as not a seizure (classes 2, 3, 4, or 5) and 1 if it is predicted as a seizure. The multiclass SVM [five_class_pca_svm.z](/models/five_class_pca_svm.z) and the decision tree [5c_rf_scaled.z](/models/5c_rf_scaled.z) return the predicted class as an integer. The neural network [5c_nn.h5](/models/5c_nn.h5) returns a [one-hot encoding](https://machinelearningmastery.com/how-to-one-hot-encode-sequence-data-in-python/) as used by Keras.
 
-In order to demonstrate how one might deploy the model, I wrote a [web API](api.py) to apply the PCA-SVM . It's pretty basic and just accepts get requests with JSON-encoded vectors of length 178. This one does not expect you to divide by 2047 first. While not a particularly useful API, this demonstrates how one might be able to deploy the model. It returns 'Not Seizure' or 'Seizure' depending on the predicted result/
+In order to demonstrate how one might deploy the model, I wrote a [web API](api.py) to apply the PCA-SVM . It's pretty basic and just accepts get requests with JSON-encoded vectors of length 178. This one does not expect you to divide by 2047 first. While not a particularly useful API, this demonstrates how one might be able to deploy the model. It returns 'Not Seizure' or 'Seizure' depending on the predicted result.
 
 I also wrote a [few tests to ensure the models are working, and a test of the API.](/test_deployment.py) They only test the PCA-SVM models since these were the best models I developed. For each I test a single prediction, and then test that the confusion matrix has not changed. I also do a test of the api to ensure that it works and that it can perform prediction as well.
 
