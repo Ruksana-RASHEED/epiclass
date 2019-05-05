@@ -176,12 +176,11 @@ I tried three quite different methods on the multiclass classification problem, 
 
 The models I created are saved in the *models* directory for future use. The SVM and random forest models are saved using the [joblib](https://joblib.readthedocs.io/en/latest/) library. If you want to use them, you can load them using joblib.loads, passing the path to the model file you wish to load. The neural network model is saved in keras format and can be loaded using keras.load, again passing the path. Note that the features should be divided by 2047 before passing them to any of the models.
 
-The binary classifier ([models/two_class_pca_svm.z]) returns 0 if it's predicted as not a seizure (classes 2, 3, 4, or 5) and 1 if it
-is predicted as a seizure. The multiclass SVM ([models/five_class_pca_svm.z]) and the decision tree return the predicted class as an integer. The neural network ([5c_nn.h5]) returns a [one-hot encoding](https://machinelearningmastery.com/how-to-one-hot-encode-sequence-data-in-python/) as used by Keras.
+The binary classifier [two_class_pca_svm.z](/models/two_class_pca_svm.z) returns 0 if it's predicted as not a seizure (classes 2, 3, 4, or 5) and 1 if it is predicted as a seizure. The multiclass SVM [five_class_pca_svm.z](/models/five_class_pca_svm.z) and the decision tree return the predicted class as an integer. The neural network [5c_nn.h5](/models/5c_nn.h5) returns a [one-hot encoding](https://machinelearningmastery.com/how-to-one-hot-encode-sequence-data-in-python/) as used by Keras.
 
-In order to demonstrate how one might deploy the model, I wrote a web API in [api.py] to apply the PCA-SVM . It's pretty basic and just accepts get requests with JSON-encoded vectors of length 178. This one does not expect you to divide by 2047 first. While not a particularly useful API, this demonstrates how one might be able to deploy the model. It returns 'Not Seizure' or 'Seizure' depending on the predicted result/
+In order to demonstrate how one might deploy the model, I wrote a [web API](api.py) to apply the PCA-SVM . It's pretty basic and just accepts get requests with JSON-encoded vectors of length 178. This one does not expect you to divide by 2047 first. While not a particularly useful API, this demonstrates how one might be able to deploy the model. It returns 'Not Seizure' or 'Seizure' depending on the predicted result/
 
-I also wrote a few tests to ensure the models are working, and a test of the API. You can find the tests in [test_deployment.py] They only test the PCA-SVM models since these were the best models I developed. For each I test a single prediction, and then test that the confusion matrix has not changed. I also do a test of the api to ensure that it works and that it can perform prediction as well.
+I also wrote a [few tests to ensure the models are working, and a test of the API.](/test_deployment.py) They only test the PCA-SVM models since these were the best models I developed. For each I test a single prediction, and then test that the confusion matrix has not changed. I also do a test of the api to ensure that it works and that it can perform prediction as well.
 
 ## Conclusion
 
