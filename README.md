@@ -19,7 +19,7 @@ There are 11500 data points (rows in the data set) and 178 features (columns). T
 > 
 > * 1 - Recording of seizure activity 
 
-The goal here is to build two models, one to predict seizure vs. non-seizure, and one to predict which one of the five classes a given datapoint belongs to. So this is a classic supervised classification problem.
+The goal here is to build two models, one to predict seizure vs. non-seizure, and one to predict which one of the five classes a given data point belongs to. So this is a classic supervised classification problem.
 
 ## Exploratory data analysis
 
@@ -52,7 +52,7 @@ Note the diagonal band of high correlation in the centre, flanked by parallel li
 
 This shape, with the closest 10 or so features on each side having positive correlation, decreasing as you get farther from the feature, followed by negative correlations with the next 10 or so features, and oscillating afterwards between positive and negative correlations, is characteristic of the correlations with any one feature. This structure should make dimensionality reduction methods, such as Principal Component Analysis (PCA), work quite well on this data. We will revisit this below when we perform PCA on the data.
 
-Before using complex dimensionality reduction methods, I wanted to see if I could see patterns in the classification of the data with some simple feature engineering. With all the features scaled the same, I wanted to see if I could do some new features which were simple statistical summary values on the complete feature set. So I took the mean, median, minimum, maximum, and range (maximum minus minimum) of each datapoint, summarizing across all the features. There are some pretty clear patterns that should make it not too difficult to write a classifier for this data set. Here, for example, is a box plot of the range across the target classes:
+Before using complex dimensionality reduction methods, I wanted to see if I could see patterns in the classification of the data with some simple feature engineering. With all the features scaled the same, I wanted to see if I could do some new features which were simple statistical summary values on the complete feature set. So I took the mean, median, minimum, maximum, and range (maximum minus minimum) of each data point, summarizing across all the features. There are some pretty clear patterns that should make it not too difficult to write a classifier for this data set. Here, for example, is a box plot of the range across the target classes:
 
 ![Box plot of range](/outputs/range_box.png "Boxplot of range of features")
 
@@ -82,8 +82,8 @@ Here's a plot of the first five PCA components vs the original features:
 
 You can see the how the data structure that we saw above in the heatmap and the correlations with X90 have affected the PCA components - the components show that same alternating pattern with the same wavelength.
 
-I then plotted the datapoints projected onto the first two PCA components, to give an idea of how well the PCA has done in generating a space in which we can separate the classes:
-![Datapoints projected onto the first two PCA components](/outputs/two_pca_components.png "Datapoints projected onto the first two PCA components")
+I then plotted the data points projected onto the first two PCA components, to give an idea of how well the PCA has done in generating a space in which we can separate the classes:
+![data points projected onto the first two PCA components](/outputs/two_pca_components.png "data points projected onto the first two PCA components")
 
 Doesn't look linearly separable in only these two dimensions, but it does look like we might be able to use a non-linear method like a support vector machine with a radial basis function kernel or similar to separate the classes.
 
@@ -95,7 +95,7 @@ I am using 70% of the data for training and for hyper-parameter tuning (through 
 
 ### Accuracy
 
-Classification accuracy is quite appropriate in this case – we are trying to classify as seizure/not seizure or by class, and we want to classify as many correctly as possible. In the multiclass case, the classes are perfectly balanced, meaning there are the same number of each class. So there is no reason to come up with a more complex metric than accuracy. For the seizure vs non-seizure case, the classes are unbalanced, with 20% in one class and 80% in the other. While not extremely unbalanced, accuracy might still not be the best measure, since we could get an accuracy of 80% by naively classifying every datapoint as a non-seizure. So we may want to consider other metrics.
+Classification accuracy is quite appropriate in this case – we are trying to classify as seizure/not seizure or by class, and we want to classify as many correctly as possible. In the multiclass case, the classes are perfectly balanced, meaning there are the same number of each class. So there is no reason to come up with a more complex metric than accuracy. For the seizure vs non-seizure case, the classes are unbalanced, with 20% in one class and 80% in the other. While not extremely unbalanced, accuracy might still not be the best measure, since we could get an accuracy of 80% by naively classifying every data point as a non-seizure. So we may want to consider other metrics.
 
 ### Area under the Receiver Operating Characteristic curve
 
@@ -117,7 +117,7 @@ Let's start with the seizure (class 1) vs non-seizure (all other classes) classi
 
 As I mentioned above, after doing PCA, the classes look like they may be separable but not linearly. So the first thing I decided to try was to use a support vector machine (SVM) with a radial-basis-function (RBF) kernel.
 
-I created a pipeine with the PCA and the SVC (support vector classification) using an RBF kernel. The most important hyperparameters are the number of PCA components to use, the penalty parameter C on the SVM error term, and gamma, which is a scale parameter on the RBF function used in the SVM. I used the [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html#sklearn.model_selection.GridSearchCV) method with five-fold cross-validation on the training set, optimizing for F1-score, to choose these hyperparameters.
+I created a pipeline with the PCA and the SVC (support vector classification) using an RBF kernel. The most important hyperparameters are the number of PCA components to use, the penalty parameter C on the SVM error term, and gamma, which is a scale parameter on the RBF function used in the SVM. I used the [GridSearchCV](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html#sklearn.model_selection.GridSearchCV) method with five-fold cross-validation on the training set, optimizing for F1-score, to choose these hyperparameters.
 
 Using 50 PCA components, C=1000, and gamma=0.001 resulted in a cross-validation f1 of 0.961, and an accuracy of 99.5%.
 
@@ -148,15 +148,15 @@ As you can see, the algorithm does pretty well at distinguishing class 1 (seizur
 
 ### Random Forest
 
-Since the accuracy was only 70%, even with the best hyperparameters, I wanted to try a different class of method. So I chose a random decision forest. I also ran 5-fold cross-validation on the training set to choose the hyperparameters. Unfortunately, it wasn't an improvement on the PCA and SVM pipeline. The best cross-validation accuracy on the test set was only 57.3%. Here's the confusion matrix on the test set:
+Since the accuracy was only 70%, even with the best hyperparameters, I wanted to try a different class of method. So I chose a random decision forest. I also ran 5-fold cross-validation on the training set to choose the hyperparameters. Unfortunately, it wasn't an improvement on the PCA and SVM pipeline. The grid search chose a maximum tree depth of 25, and maximum number of features used per tree of 30, and 250 trees. All of these were the maximum number over my grid search and it took 43 seconds to train this forest. The best cross-validation accuracy on the training set was 69.3%. On the held-out test set, the accuracy 68.7%. Here's the confusion matrix on the test set:
 
 ![Confusion matrix for random decision forest](/outputs/confusion_5c_rf_scaled.png "Confusion matrix for multiclass with random decision forest")
 
-Similarly to the SVM model above, this model is good at distinguishing seizures from non-seizures but struggles with distinguishing class 2 from class 3 and class 4 from class 5. But it additionally erroneously classifies many class 2, 3, and 4 data points as class 5.
+Similarly to the SVM model above, this model is good at distinguishing seizures from non-seizures but struggles with distinguishing class 2 from class 3 and class 4 from class 5. But it additionally erroneously classifies many class 2, 3, and 4 data points as class 5 and class 5 as class 3.
 
 ### Neural network
 
-Since neither the SVM model nore the random forest got the kinds of accuracy I was hoping for, I wanted to see if a neural network could do a better job.
+Since neither the SVM model nor the random forest got the kinds of accuracy I was hoping for, I wanted to see if a neural network could do a better job.
 
 Using keras, I built a dense neural network. I manually tried multiple architectures, training all of them on the training set and measuring their accuracy on the test set. The best architecture I found was a dense converging network with two hidden layers. Here's the architecture, using keras's plot_model method:
 
@@ -166,7 +166,7 @@ Here's the confusion matrix from the resulting neural network:
 
 ![Confusion matrix for neural network](/outputs/confusion_nn.png "Confusion matrix for neural network")
 
-Similarly to the SVM model, the neural network does an excellent job of separating out seizure data from the other datapoints, but struggles to separate classes 2 & 3, and classes 4 & 5. The overall accuracy is 67.7%, similar to but worse than the SVM model 
+Similarly to the SVM model, the neural network does an excellent job of separating out seizure data from the other data points, but struggles to separate classes 2 & 3, and classes 4 & 5. The overall accuracy is 67.7%, similar to but worse than the SVM model and the random forest. 
 
 ### Conclusion for multiclass classification
 
@@ -176,7 +176,7 @@ I tried three quite different methods on the multiclass classification problem, 
 
 The models I created are saved in the *models* directory for future use. The SVM and random forest models are saved using the [joblib](https://joblib.readthedocs.io/en/latest/) library. If you want to use them, you can load them using joblib.loads, passing the path to the model file you wish to load. The neural network model is saved in keras format and can be loaded using keras.load, again passing the path. Note that the features should be divided by 2047 before passing them to any of the models.
 
-The binary classifier [two_class_pca_svm.z](/models/two_class_pca_svm.z) returns 0 if it's predicted as not a seizure (classes 2, 3, 4, or 5) and 1 if it is predicted as a seizure. The multiclass SVM [five_class_pca_svm.z](/models/five_class_pca_svm.z) and the decision tree return the predicted class as an integer. The neural network [5c_nn.h5](/models/5c_nn.h5) returns a [one-hot encoding](https://machinelearningmastery.com/how-to-one-hot-encode-sequence-data-in-python/) as used by Keras.
+The binary classifier [two_class_pca_svm.z](/models/two_class_pca_svm.z) returns 0 if it's predicted as not a seizure (classes 2, 3, 4, or 5) and 1 if it is predicted as a seizure. The multiclass SVM [five_class_pca_svm.z](/models/five_class_pca_svm.z) and the decision tree [5c_rf_scaled.z](/models/5c_rf_scaled.z) return the predicted class as an integer. The neural network [5c_nn.h5](/models/5c_nn.h5) returns a [one-hot encoding](https://machinelearningmastery.com/how-to-one-hot-encode-sequence-data-in-python/) as used by Keras.
 
 In order to demonstrate how one might deploy the model, I wrote a [web API](api.py) to apply the PCA-SVM . It's pretty basic and just accepts get requests with JSON-encoded vectors of length 178. This one does not expect you to divide by 2047 first. While not a particularly useful API, this demonstrates how one might be able to deploy the model. It returns 'Not Seizure' or 'Seizure' depending on the predicted result/
 
