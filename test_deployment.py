@@ -1,14 +1,12 @@
 """ Tests the functionality of the epileptic seizure classifiers and api
 """
 
-import unittest
 import os
+import unittest
+
+import joblib
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
-import joblib
-import json
-
-from api import app
 
 MODEL_DIR = 'models'
 TEST_DIR = 'test_cases'
@@ -122,40 +120,6 @@ class TestFiveClassPcaSvm(unittest.TestCase):
         expected_result = pd.read_csv(expected_filename, index_col=0)
         expected_result.columns = confusion.columns
         assert_frame_equal(confusion, expected_result)
-
-
-class TestApi(unittest.TestCase):
-
-    def setUp(self):
-        """Start the api running
-        """
-        app.config['TESTING'] = True
-        self.app = app.test_client()
-
-    @staticmethod
-    def create_post_request(features):
-        """Make a POST request to send to the API
-
-        Args:
-            features: pandas Series
-                feature values
-        Returns: str
-            POST request for API
-        """
-        query = ', '.join(features.astype(int).astype(str))
-        return query
-
-    def test_classify(self):
-        """Test that the API returns the correct classification
-        """
-        _, class_name, method_name = self.id().split('.')
-        directory = os.path.join(TEST_DIR, class_name, method_name)
-        filename = os.path.join(directory, 'test_data.csv')
-        x_test, y_test = read_features_targets(filename)
-        post_request = self.create_post_request(2047.0 * x_test.iloc[0, :])
-        response = self.app.post('/', json=post_request)
-        print(response)
-        self.assertEqual(prediction, 'Not seizure')
 
 
 if __name__ == '__main__':
