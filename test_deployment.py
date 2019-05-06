@@ -82,6 +82,7 @@ class TestTwoClassPcaSvm(unittest.TestCase):
         filename = os.path.join(directory, 'test_data.csv')
         x_test, y_test = read_features_targets_2c(filename)
         y_pred = self.model.predict(x_test)
+        print(y_pred)
         confusion = pd.crosstab(y_test, y_pred)
         expected_filename = os.path.join(directory, 'expected_confusion.csv')
         expected_result = pd.read_csv(expected_filename, index_col=0)
@@ -132,17 +133,17 @@ class TestApi(unittest.TestCase):
         self.app = app.test_client()
 
     @staticmethod
-    def create_get_request(features):
-        """Make a get request to send to the API
+    def create_post_request(features):
+        """Make a POST request to send to the API
 
         Args:
             features: pandas Series
                 feature values
         Returns: str
-            Get request for API
+            POST request for API
         """
-        query = features.to_json()
-        return '/?query=' + query
+        query = ', '.join(features.astype(int).astype(str))
+        return query
 
     def test_classify(self):
         """Test that the API returns the correct classification
@@ -151,9 +152,9 @@ class TestApi(unittest.TestCase):
         directory = os.path.join(TEST_DIR, class_name, method_name)
         filename = os.path.join(directory, 'test_data.csv')
         x_test, y_test = read_features_targets(filename)
-        get_request = self.create_get_request(2047.0 * x_test)
-        response = self.app.get(get_request)
-        prediction = json.loads(response.data)['prediction']
+        post_request = self.create_post_request(2047.0 * x_test.iloc[0, :])
+        response = self.app.post('/', json=post_request)
+        print(response)
         self.assertEqual(prediction, 'Not seizure')
 
 
