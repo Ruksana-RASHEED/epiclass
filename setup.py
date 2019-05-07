@@ -11,6 +11,6 @@ setup(
     description='Visualization and prediction of epileptic seizure data set',
     install_requires=['keras', 'pandas', 'joblib', 'matplotlib', 'seaborn',
                       'scikit-learn', 'flask>=1.0.2', 'flask_restful',
-                      'tensorflow'],
+                      'TensorFlow'],
     scripts=['run_epiclass.py', 'api.py', 'test_deployment.py']
 )
