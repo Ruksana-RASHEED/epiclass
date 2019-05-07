@@ -46,28 +46,27 @@ CLASS_MAP = {5: 'eyes open', 4: 'eyes closed', 3: 'healthy brain area',
              2: 'tumor area', 1: 'seizure activity'}
 
 
-def main():
-    """Explore seizure data set and create prediction model
+def run(actions):
+    """Explore seizure data set and/or create prediction models
 
-    Load the data. Generate several plots to help understand the data. Train,
-    optimize the hyperparameters for, and save the following models:
-        - A pipeline with principal component analysis followed by an
-            rbf-kernel support vector classifier for the binary problem of
-            predicting seizure vs non-seizure.
-        - A pipeline with principal component analysis followed by an
-            rbf-kernel support vector classifier for the multiclass problem of
-            predicting which of the 5 categories the measurement falls into
-        - A random forest for the multiclass problem of
-            predicting which of the 5 categories the measurement falls into
-        - A neural network for the multiclass problem of
-            predicting which of the 5 categories the measurement falls into
-    For each, save the cross-validation scores and the confusion matrices to
-    files.
-
-    Note that because this function performs cross-validation on multiple
-    machine learning models, it takes a very long time (a few hours, perhaps,
-    depending on your hardware) to run. Normally select only the parts that
-    are needed to run, and comment out the rest in this function.
+    Args:
+        actions: list of str
+            Action to take. Choose one or more of
+              explore - make several plots of the data, including of the
+                  Principal Component Analysis (PCA) transformation of
+                  the features
+              pca_svm2 - train a binary classifier (seizure vs
+                  non-seizure) using a pipeline of PCA and a support
+                  vector machine
+              pca_svm5 - train a multiclass classifier using a pipeline
+                  of PCA and a support vector machine
+              rf - train a multiclass classifier using a random decision
+                   forest
+              nn - train a multiclass classifier using an artificial
+                   neural network
+          All the training methods save the models to the model
+          directory and additionally save a confusion matrix to the
+          outputs directory.
 
     Returns:
         None
@@ -80,26 +79,134 @@ def main():
     x_train, x_test, y_train, y_test = train_test_split(features, target,
                                                         test_size=0.3,
                                                         random_state=0)
+    if 'explore' in actions:
+        run_explore(epidata, x_train, y_train)
+    if 'pca_svm2' in actions:
+        run_pca_svm2(x_train, y_train, x_test, y_test)
+    if 'pca_svm5' in actions:
+        run_pca_svm5(x_train, y_train, x_test, y_test)
+    if 'rf' in actions:
+        run_rf(x_train, y_train, x_test, y_test)
+    if 'nn' in actions:
+        run_nn(x_train, y_train, x_test, y_test)
+
+def run_explore(epidata, x_train, y_train):
+    """Generate several plots to help understand the data
+
+    Returns:
+        None
+    """
+    explore_data(epidata)
     explore_pca(x_train, y_train)
     naive_vis(x_train, y_train)
-    # two class PCA SVM pipeline
+
+
+def run_pca_svm2(x_train, y_train, x_test, y_test):
+    """Train binary classifier with PCA and SVM
+
+    Create a pipeline of Principal Component Analysis followed by a kernel
+    Support Vector Machine with a radial-basis-function kernel. Train it to
+    classify seizures vs non-seizures. Run a cross-validation grid search
+    and save the results. Train a new model with all the training data and
+    save the model to the models directory. Run the model on the test data
+    and save the confusion matrix
+
+    Args:
+        x_train: pandas DataFrame
+            Features for training
+        y_train: pandas Series
+            Targets for training
+        x_test: pandas DataFrame
+            Features for testing
+        y_test:
+            Targets for testing
+
+    Returns:
+        None
+    """
     test_pca_svm(x_train, (y_train == 1).astype(int), x_test,
                  (y_test == 1).astype(int), '2c_scaled_fine')
     train_and_save_pca_svm(50, 50, 0.005, x_train, (y_train == 1).astype(int),
                            x_test, (y_test == 1).astype(int),
                            'two_class_pca_svm')
-    # five class PCA SVM pipeline
+
+def run_pca_svm5(x_train, y_train, x_test, y_test):
+    """Train multiclass classifier with PCA and SVM
+
+    Create a pipeline of Principal Component Analysis followed by a kernel
+    Support Vector Machine with a radial-basis-function kernel. Train it to
+    classify for the 5-class problem. Run a cross-validation grid search
+    and save the results. Train a new model with all the training data and
+    save the model to the models directory. Run the model on the test data
+    and save the confusion matrix
+
+    Args:
+        x_train: pandas DataFrame
+            Features for training
+        y_train: pandas Series
+            Targets for training
+        x_test: pandas DataFrame
+            Features for testing
+        y_test:
+            Targets for testing
+
+    Returns:
+        None
+    """
     test_pca_svm(x_train, y_train, x_test, y_test, '5c_scaled')
     train_and_save_pca_svm(50, 100, 0.1, x_train, y_train, x_test, y_test,
                            'five_class_pca_svm')
     visualize_confusion(os.path.join('outputs', 'five_class_pca_svm'))
-    # five class random forest
+
+
+def run_rf(x_train, y_train, x_test, y_test):
+    """Train multiclass classifier with random decision forest
+
+    Create a random decision forest classifier. Train it to classify for the
+    5-class problem. Run a cross-validation grid search and save the results.
+    Train a new model with all the training data and save the model to the
+    models directory. Run the model on the test data and save the confusion
+    matrix
+
+    Args:
+        x_train: pandas DataFrame
+            Features for training
+        y_train: pandas Series
+            Targets for training
+        x_test: pandas DataFrame
+            Features for testing
+        y_test:
+            Targets for testing
+
+    Returns:
+        None
+    """
     test_random_forest(x_train, y_train, x_test, y_test, '5c_rf_scaled')
     visualize_confusion(os.path.join('outputs', 'confusion_5c_rf_scaled'))
-    # five class neural network
+
+
+def run_nn(x_train, y_train, x_test, y_test):
+    """Train multiclass classifier with artificial neural network
+
+    Create a classifier using an artificial neural network. Train it to
+    classify for the 5-class problem. Save the model to the models directory.
+    Run the model on the test data and save the confusion matrix
+
+    Args:
+        x_train: pandas DataFrame
+            Features for training
+        y_train: pandas Series
+            Targets for training
+        x_test: pandas DataFrame
+            Features for testing
+        y_test:
+            Targets for testing
+
+    Returns:
+        None
+    """
     create_and_test_neural_net(x_train, x_test, y_train, y_test)
     visualize_confusion(os.path.join('outputs', 'confusion_nn'))
-
 
 def save_data_to_file(features, targets, filename):
     """Save features and targets to a csv file
@@ -772,4 +879,4 @@ def train_nn(x_train, y_train):
 
 
 if __name__ == '__main__':
-    main()
+    print('To run methods in this module, use the run_epiclass.py script')
