@@ -83,7 +83,7 @@ Here's a plot of the first three PCA components vs the original features:
 I then plotted the data points projected onto the first two PCA components, to give an idea of how well the PCA has done in generating a space in which we can separate the classes:
 ![data points projected onto the first two PCA components](/outputs/two_pca_components.png "data points projected onto the first two PCA components")
 
-Doesn't look linearly separable in only these two dimensions, but it does look like we might be able to use a non-linear method like a support vector machine with a radial basis function kernel or similar to separate the classes.
+It doesn't look linearly separable in only these two dimensions, but it does look like we might be able to use a non-linear method like a support vector machine with a radial basis function kernel or similar to separate the classes.
 
 ## Evaluation metrics
 
@@ -178,10 +178,10 @@ The models I created are saved in the *models* directory for future use. The SVM
 
 The binary classifier [two_class_pca_svm.z](/models/two_class_pca_svm.z) returns 0 if it's predicted as not a seizure (classes 2, 3, 4, or 5) and 1 if it is predicted as a seizure. The multiclass SVM [five_class_pca_svm.z](/models/five_class_pca_svm.z) and the decision tree [5c_rf_scaled.z](/models/5c_rf_scaled.z) return the predicted class as an integer. The neural network [5c_nn.h5](/models/5c_nn.h5) returns a [one-hot encoding](https://machinelearningmastery.com/how-to-one-hot-encode-sequence-data-in-python/) as used by Keras.
 
-In order to demonstrate how one might deploy the model, I wrote a [web API](api.py) to apply the PCA-SVM . It's pretty basic and just accepts get requests with JSON-encoded vectors of length 178. This one does not expect you to divide by 2047 first. While not a particularly useful API, this demonstrates how one might be able to deploy the model. It returns 'Not Seizure' or 'Seizure' depending on the predicted result.
+In order to demonstrate how one might deploy the model, I wrote a [web API](api.py) to apply the binary PCA-SVM . It creates a form where you can enter features, and then tells you what the classification is. This one does not expect you to divide by 2047 first. If you submit the features into the form, it tells you whether the model predicts a seizure or not.
 
-I also wrote a [few tests to ensure the models are working, and a test of the API.](/test_deployment.py) They only test the PCA-SVM models since these were the best models I developed. For each I test a single prediction, and then test that the confusion matrix has not changed. I also do a test of the api to ensure that it works and that it can perform prediction as well.
+I also wrote a [few tests to ensure the models are working](/test_deployment.py) They only test the PCA-SVM models since these were the best models I developed. For each I test a single prediction, and then test that the confusion matrix has not changed. 
 
 ## Conclusion
 
-I spent less than a week of off-hours work on this. I think I could improve the models with further tuning (for example, a finer grid search) and by trying other models (e.g. different neural network architectures, logistic regression, fourier transforms). However I think the improvements would be marginal and that I have gotten pretty close to the limits of what the data can provide.
+I think I could improve the models with further tuning (for example, a finer grid search) and by trying other models (e.g. different neural network architectures, logistic regression, fourier transforms). However I think the improvements would be marginal and that I have gotten pretty close to the limits of what the data can provide.
