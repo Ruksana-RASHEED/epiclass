@@ -178,7 +178,7 @@ The models I created are saved in the *models* directory for future use. The SVM
 
 The binary classifier [two_class_pca_svm.z](/models/two_class_pca_svm.z) returns 0 if it's predicted as not a seizure (classes 2, 3, 4, or 5) and 1 if it is predicted as a seizure. The multiclass SVM [five_class_pca_svm.z](/models/five_class_pca_svm.z) and the decision tree [5c_rf_scaled.z](/models/5c_rf_scaled.z) return the predicted class as an integer. The neural network [5c_nn.h5](/models/5c_nn.h5) returns a [one-hot encoding](https://machinelearningmastery.com/how-to-one-hot-encode-sequence-data-in-python/) as used by Keras.
 
-In order to demonstrate how one might deploy the model, I wrote a [web API](api.py) to apply the binary PCA-SVM . It creates a form where you can enter features, and then tells you what the classification is. This one does not expect you to divide by 2047 first. If you submit the features into the form, it tells you whether the model predicts a seizure or not.
+In order to demonstrate how one might deploy the model, I wrote a [web GUI](web_gui.py) to apply the binary PCA-SVM . It creates a form where you can enter features, and then tells you what the classification is. This one does not expect you to divide by 2047 first. If you submit the features into the form, it tells you whether the model predicts a seizure or not. This could also easily be adapted into e.g. a REST API for use by other developers.
 
 I also wrote a [few tests to ensure the models are working](/test_deployment.py) They only test the PCA-SVM models since these were the best models I developed. For each I test a single prediction, and then test that the confusion matrix has not changed. 
 
@@ -233,12 +233,12 @@ This runs four tests to ensure that the PCA-SVM models are giving expected resul
 
 It will show some text in the console indicating whether the tests ran.
 
-#### api.py
+#### web_gui.py
 
-This starts a process serving an API with access to the binary PCA-SVM model.
+This starts a process serving a Web GUI with access to the binary PCA-SVM model.
 To run it run:
 
-`python api.py`
+`python web_gui.py`
 
 Your python will give you a URL - visit it with your browser.
 
