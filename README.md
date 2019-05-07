@@ -182,6 +182,65 @@ In order to demonstrate how one might deploy the model, I wrote a [web API](api.
 
 I also wrote a [few tests to ensure the models are working](/test_deployment.py) They only test the PCA-SVM models since these were the best models I developed. For each I test a single prediction, and then test that the confusion matrix has not changed. 
 
+## Working with epiclass
+
+### Installing
+
+Epiclass requires python 3. To get epiclass, make sure your python is python 3, and run 
+
+`git clone https://github.com/moink/epiclass/`
+
+`cd epiclass`
+
+`python setup.py`
+
+### Running
+
+There are three scripts to run, run_epiclass.py, api.py, and test_deployment.py
+
+#### run_epiclass.py
+
+This script is included to show how I created the plots in this readme, trained the models, and tuned the hyperparameters. Running it with all options may take a long time, depending on your hardware -- on the order of hours.
+
+To run it, provide one or more of the following actions as a parameter to the python script:
+
+* explore - make several plots of the data, including of the
+                          Principal Component Analysis (PCA) transformation of
+                          the features
+* pca_svm2 - train a binary classifier (seizure vs
+                          non-seizure) using a pipeline of PCA and a support 
+                          vector machine
+* pca_svm5 - train a multiclass classifier using a pipeline 
+                          of PCA and a support vector machine
+* rf - train a multiclass classifier using a random decision 
+                           forest
+* nn - train a multiclass classifier using an artificial 
+                           neural network
+                  All the training methods save the models to the model 
+                  directory and additionally save a confusion matrix to the 
+                  outputs directory.
+
+For example, to create the data exploration plots and train the neural network, run
+
+`python run_epiclass.py explore nn`
+
+#### test_deployment.py
+
+This runs four tests to ensure that the PCA-SVM models are giving expected results. To run it run:
+
+`python test_deployment.py`
+
+It will show some text in the console indicating whether the tests ran.
+
+#### api.py
+
+This starts a process serving an API with access to the binary PCA-SVM model.
+To run it run:
+
+`python api.py`
+
+Your python will give you a URL - visit it with your browser.
+
 ## Conclusion
 
 I think I could improve the models with further tuning (for example, a finer grid search) and by trying other models (e.g. different neural network architectures, logistic regression, fourier transforms). However I think the improvements would be marginal and that I have gotten pretty close to the limits of what the data can provide.

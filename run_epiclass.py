@@ -2,7 +2,7 @@
 
 # import modules used here -- sys is a very standard one
 import sys, argparse, logging
-from epiclass import run
+from epiclass.epiclass import run
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
