@@ -216,8 +216,9 @@ To run it, provide one or more of the following actions as a parameter to the py
                            forest
 * nn - train a multiclass classifier using an artificial 
                            neural network
-                  All the training methods save the models to the model 
-                  directory and additionally save a confusion matrix to the 
+                  
+All the training methods save the models to the model 
+directory and additionally save a confusion matrix to the 
                   outputs directory.
 
 For example, to create the data exploration plots and train the neural network, run

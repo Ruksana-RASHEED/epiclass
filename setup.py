@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='epiclass',
-    version='1.0.0',
+    version='1.0.1',
     packages=['epiclass'],
     url='https://github.com/moink/epiclass',
     license='MIT',
