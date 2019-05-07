@@ -12,5 +12,5 @@ setup(
     install_requires=['keras', 'pandas', 'joblib', 'matplotlib', 'seaborn',
                       'scikit-learn', 'flask>=1.0.2', 'flask_restful',
                       'tensorflow'],
-    scripts=['run_epiclass', 'api', 'test_deployment']
+    scripts=['run_epiclass.py', 'api.py', 'test_deployment.py']
 )
