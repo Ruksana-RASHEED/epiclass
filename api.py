@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """API for accessing 2-parameter classification of epileptic seizure data
 """
 import os

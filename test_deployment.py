@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """ Tests the functionality of the epileptic seizure classifiers and api
 """
 

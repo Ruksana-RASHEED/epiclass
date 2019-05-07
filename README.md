@@ -192,7 +192,7 @@ Epiclass requires python 3. To get epiclass, make sure your python is python 3, 
 
 `cd epiclass`
 
-`python setup.py`
+`python setup.py install`
 
 ### Running
 
