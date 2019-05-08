@@ -134,7 +134,7 @@ This comes out to a precision of 98.8%, recall of 98.2%, f1-score of 0.985, and 
 
 I created a learning curve for this classifier, shown below.
 
-![Learning curve for two-class PCA SVM](/outputs/lc_two_class_pca_svm "Learning curve for two-class PCA SVM")
+![Learning curve for two-class PCA SVM](/outputs/lc_two_class_pca_svm.png "Learning curve for two-class PCA SVM")
 
 This learning curve shows that the training and test accuracy have not converged to each other, and that the test accuracy is still increasing with the number of data points. This model would benefit from gathering more data, or perhaps making new synthetic data from the existing data. There's a gap between the training and testing error of about 2% accuracy. The problem could also benefit from more time put into feature engineering, feature selection, and hyperparameter optimization.
 
@@ -154,7 +154,7 @@ As you can see, the algorithm does pretty well at distinguishing class 1 (seizur
 
 Here's the learning curve
 
-![Learning curve for muticlass PCA SVM](/outputs/lc_five_class_pca_svm "Learning curve for five-class PCA SVM")
+![Learning curve for muticlass PCA SVM](/outputs/lc_five_class_pca_svm.png "Learning curve for five-class PCA SVM")
 
 Similarly to the binary classification problem, but worse, this learning curve shows that the training and test accuracy have not converged to each other, and that the test accuracy is still increasing with the number of data points. This model would benefit from gathering more data, or perhaps making new synthetic data from the existing data. There's a gap between the training and testing error of about 25% accuracy, which is quite high. There is quite a bit of potential for improvement here. The problem could also benefit from more time put into feature engineering, feature selection, and hyperparameter optimization.
 
