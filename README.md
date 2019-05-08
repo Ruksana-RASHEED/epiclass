@@ -132,6 +132,12 @@ Running that model on the test set (not used in tuning the hyperparameters) resu
 
 This comes out to a precision of 98.8%, recall of 98.2%, f1-score of 0.985, and accuracy of 97.6%. This seems like a reasonably good classifier for this problem.
 
+I created a learning curve for this classifier, shown below.
+
+![Learning curve for two-class PCA SVM](/outputs/lc_two_class_pca_svm "Learning curve for two-class PCA SVM")
+
+This learning curve shows that the training and test accuracy have not converged to each other, and that the test accuracy is still increasing with the number of data points. This model would benefit from gathering more data, or perhaps making new synthetic data from the existing data. There's a gap between the training and testing error of about 2% accuracy. The problem could also benefit from more time put into feature engineering, feature selection, and hyperparameter optimization.
+
 ## Multiclass Classification
 
 ### Principal Components Analysis and Support Vector Machine
@@ -145,6 +151,12 @@ Let's look in more detail about why the classifier was not able to get better ac
 ![Confusion matrix for multiclass with PCA and SVM](/outputs/confusion_5c_scaled.png "Confusion matrix for multiclass with PCA and SVMs")
 
 As you can see, the algorithm does pretty well at distinguishing class 1 (seizures) from the rest, like in the binary classification. It has errors of almost every combination, except that it doesn't ever identify a seizure data point as a healthy, eyes-open point. It has trouble telling classes 4 and 5 - eyes open and closed - and especially classes 2 and 3 - measurements in the tumor area and in the healthy part of the brain where there's a tumor elsewhere - apart.
+
+Here's the learning curve
+
+![Learning curve for muticlass PCA SVM](/outputs/lc_five_class_pca_svm "Learning curve for five-class PCA SVM")
+
+Similarly to the binary classification problem, but worse, this learning curve shows that the training and test accuracy have not converged to each other, and that the test accuracy is still increasing with the number of data points. This model would benefit from gathering more data, or perhaps making new synthetic data from the existing data. There's a gap between the training and testing error of about 25% accuracy, which is quite high. There is quite a bit of potential for improvement here. The problem could also benefit from more time put into feature engineering, feature selection, and hyperparameter optimization.
 
 ### Random Forest
 
@@ -242,6 +254,6 @@ To run it run:
 
 Your python will give you a URL - visit it with your browser.
 
-## Conclusion
+## Next steps
 
-I think I could improve the models with further tuning (for example, a finer grid search) and by trying other models (e.g. different neural network architectures, logistic regression, fourier transforms). However I think the improvements would be marginal and that I have gotten pretty close to the limits of what the data can provide.
+The learning curves show that there is still substantial improvement to be made in these classifiers. Further attention to feature engineering and dimensionality reduction would help. I would also want to try Fourier decomposition as the dimensionality-reduction step. If it were an option from the researchers, gathering more data would also help. It would be interesting to explore generating synthetic data as well to see if that could improve the model.

@@ -120,8 +120,6 @@ class PredictSeizure(Resource):
         model_input = rescaled.values.reshape(1, -1)
         return model_input
 
-
-if __name__ == '__main__':
-    # Route the URL to the resource
-    api.add_resource(PredictSeizure, '/')
-    app.run(debug=True)
+# Route the URL to the resource
+api.add_resource(PredictSeizure, '/')
+app.run(debug=True)

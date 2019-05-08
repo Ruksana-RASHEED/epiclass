@@ -122,6 +122,5 @@ class TestFiveClassPcaSvm(unittest.TestCase):
         expected_result.columns = confusion.columns
         assert_frame_equal(confusion, expected_result)
 
-
 if __name__ == '__main__':
     unittest.main()

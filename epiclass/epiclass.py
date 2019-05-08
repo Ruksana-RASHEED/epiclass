@@ -27,6 +27,7 @@ import itertools
 import os
 
 import joblib
+import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -39,6 +40,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
+from sklearn.model_selection import learning_curve
+from sklearn.model_selection import ShuffleSplit
 
 LEGEND_COORDS = (1.2, 0.8)
 TOTAL_PCA_COMPONENTS = 60
@@ -73,7 +76,6 @@ def run(actions):
     """
     epidata = pd.read_csv(os.path.join('data', 'data.csv'))
     set_matplotlib_params()
-    # explore_data(epidata)
     features = epidata.drop(['y', 'Unnamed: 0'], axis=1) / 2047.0
     target = epidata['y']
     x_train, x_test, y_train, y_test = train_test_split(features, target,
@@ -89,6 +91,7 @@ def run(actions):
         run_rf(x_train, y_train, x_test, y_test)
     if 'nn' in actions:
         run_nn(x_train, y_train, x_test, y_test)
+
 
 def run_explore(epidata, x_train, y_train):
     """Generate several plots to help understand the data
@@ -129,6 +132,7 @@ def run_pca_svm2(x_train, y_train, x_test, y_test):
     train_and_save_pca_svm(50, 50, 0.005, x_train, (y_train == 1).astype(int),
                            x_test, (y_test == 1).astype(int),
                            'two_class_pca_svm')
+
 
 def run_pca_svm5(x_train, y_train, x_test, y_test):
     """Train multiclass classifier with PCA and SVM
@@ -207,6 +211,7 @@ def run_nn(x_train, y_train, x_test, y_test):
     """
     create_and_test_neural_net(x_train, x_test, y_train, y_test)
     visualize_confusion(os.path.join('outputs', 'confusion_nn'))
+
 
 def save_data_to_file(features, targets, filename):
     """Save features and targets to a csv file
@@ -404,6 +409,10 @@ def train_and_save_pca_svm(n_components, C, gamma, x_train, y_train,
                                   'confusion_' + filename_root + '.csv'))
     model_filename = os.path.join('models', filename_root + '.z')
     joblib.dump(pipeline, model_filename)
+    cv = ShuffleSplit(n_splits=10, test_size=0.2, random_state=0)
+    plot_learning_curve(pipeline, 'Learning curve: PCA-SVM', x_train, y_train,
+                        os.path.join('outputs', 'lc_' + filename_root + '.png'),
+                        cv=cv)
 
 
 def make_violin_plots(features, targets):
@@ -876,6 +885,76 @@ def train_nn(x_train, y_train):
     filename = os.path.join('models', '5c_nn.h5')
     model.save(filename)
     return model
+
+
+def plot_learning_curve(estimator, title, x_train, y_train, filename,
+                        ylim=None, cv=None, train_sizes=None):
+    """
+    Generate a plot of the learning curve.
+    Args:
+        estimator : object type that implements the "fit" and "predict" methods
+            A classifier for which to plot the learning curve.
+        title: str
+            Title for the chart.
+        x_train: array-like, shape (n_samples, n_features)
+            Training vector, where n_samples is the number of samples and
+            n_features is the number of features.
+        y_train: array-like, shape (n_samples) or (n_samples, n_features),
+            optional
+            Target relative to X for classification
+        filename: str
+            Path to file to save
+        ylim: tuple, shape (ymin, ymax), optional
+            Defines minimum and maximum y-values plotted.
+        cv: int, cross-validation generator or an iterable, optional
+            Determines the cross-validation splitting strategy.
+           Possible inputs for cv are:
+              - None, to use the default 3-fold cross-validation,
+              - integer, to specify the number of folds.
+              - :term:`CV splitter`,
+              - An iterable yielding (train, test) splits as arrays of indices.
+        train_sizes : array-like, shape (n_ticks,) of float or int
+            Relative or absolute numbers of training examples that will be used
+            to generate the learning curve. If a float, it is
+            regarded as a fraction of the maximum size of the training set
+            (that is determined by the selected validation method), i.e. it has
+            to be within (0, 1]. Otherwise it is interpreted as absolute 
+            sizes of the training sets. Note that for classification the 
+            number of samples usually have to be big enough to contain at 
+            least one sample from each class. (default:
+            np.linspace(0.1, 1.0, 5))
+
+    Returns:
+        None
+    """
+    # mostly taken from
+    # https://scikit-learn.org/stable/auto_examples/model_selection/plot_learning_curve.html
+    if train_sizes is None:
+        train_sizes = np.linspace(.1, 1.0, 5)
+    plt.figure()
+    plt.title(title)
+    if ylim is not None:
+        plt.ylim(*ylim)
+    plt.xlabel("Training examples")
+    plt.ylabel("Score")
+    train_sizes, train_scores, test_scores = learning_curve(
+        estimator, x_train, y_train, cv=cv, train_sizes=train_sizes)
+    train_scores_mean = np.mean(train_scores, axis=1)
+    train_scores_std = np.std(train_scores, axis=1)
+    test_scores_mean = np.mean(test_scores, axis=1)
+    test_scores_std = np.std(test_scores, axis=1)
+    plt.grid()
+    plt.fill_between(train_sizes, train_scores_mean - train_scores_std,
+                     train_scores_mean + train_scores_std, alpha=0.1,
+                     color="r")
+    plt.fill_between(train_sizes, test_scores_mean - test_scores_std,
+                     test_scores_mean + test_scores_std, alpha=0.1, color="g")
+    plt.plot(train_sizes, train_scores_mean, 'o-', color="r",
+             label="Training score")
+    plt.plot(train_sizes, test_scores_mean, 'o-', color="g",
+             label="Cross-validation score")
+    plt.legend(loc="best")
+    plt.savefig(filename)
 
 
 if __name__ == '__main__':
