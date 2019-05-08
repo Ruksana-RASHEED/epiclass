@@ -182,7 +182,9 @@ Similarly to the SVM model, the neural network does an excellent job of separati
 
 ### Conclusion for multiclass classification
 
-I tried three quite different methods on the multiclass classification problem, spending some significant time tuning each of them. All three, with their best hyperparameters, got accuracies near 70%, with similar patterns in their confusion matrices. I conclude that with the current data set, it may not be possible to create a better multiclass classifier. Classes 2 & 3 have very similar features for this data set, as do classes 4 & 5. I would suggest to the researchers to take more measurements, or summarize their time series differently.
+I tried three quite different methods on the multiclass classification problem, spending some significant time tuning each of them. All three, with their best hyperparameters, got accuracies near 70%, with similar patterns in their confusion matrices.
+
+However, the learning curve for the PCA-SVM shows a very high gap between the training and validation scores, suggesting potential overfitting. More attention to the feature engineering and to hyperparameter optimization would improve the scores.
 
 ## Deployment and testing
 
